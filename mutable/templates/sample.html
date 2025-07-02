@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Sample{% endblock %}
+
+{% block body %}
+</br>
+<div class="text-4xl font-bold align-center px-8">
+    Sample id: {{sample.sample}}
+</div>
+</br>
+
+<!-- <div> Current User is {{g.user.username}} </div> -->
+
+<div class="flex flex-row px-8">
+    <table class="basis-1/4 text-left" style="float:left">
+        <tr class="border-bottom border-right">
+            <th >Sex</th>
+            <td class="pr-2">{{sample.sex if sample.sex}}</td>
+        </tr>
+        <tr class="border-bottom border-right">
+            <th>Status</th>
+            <td class="pr-2">{{sample.status if sample.status}}</td>
+        </tr>
+        <tr class="border-bottom border-right">
+            <th>Cohort Condition</th>
+            <td class="pr-2">{{sample.cohort_condition}}</td>
+        </tr>
+        <tr class="border-right">
+            <th>Cohort</th>
+            <td class="pr-2">{{sample.cohort}}</td>
+        </tr>
+        {% if sample.dup_id is not none %}
+        <tr>
+            <th>Duplicate</th>
+            <td class="pr-2">{{sample.dup_id}}</td>
+        </tr>
+        <tr>
+            <th>Twin</th>
+            <td class="pr-2">{{sample.twin}}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <table class="basis-3/4 text-left" style="float:right;">
+        <tr class="border-bottom">
+            <th class="pl-2">HPO</th>
+            <td>{{sample.hpo if sample.hpo}}</td>
+        </tr>
+        <tr class="border-bottom">
+            <th class="pl-2">HPO_ids</th>
+            {% if g.user.username != "guest@gmail.com" %}
+                <td>{{sample.hpo_id if sample.hpo and sample.hpo_id}}</td>  
+            {% endif %}
+        </tr>
+        <tr class="border-bottom">
+            <th class="pl-2">Phenotype_FreeText</th>
+            <td>{{sample.phenotype if sample.phenotype}}</td>
+        </tr>
+        <tr class="border-bottom">
+            <th class="pl-2">NDD</th>
+            <td>{{sample.ndd if sample.ndd}}</td>
+        </tr>
+        <tr>
+            <th class="pl-2">Syndromic</th>
+            <td>{{sample.syndromic if sample.syndromic}}</td>
+        </tr>
+    </table>
+</div>
+
+{% if g.user.username == "guest@gmail.com" %}
+<div class="px-6 pt-4 basis-auto text-sm">
+    * Sample-level phenotypes are not complete. Internal data are hided. 
+  </div>
+{% endif %}
+
+{% if dnvs|length > 10 %}
+<!-- It's likely the pedigree file was wrong. Not showing the related de novos -->
+{% else %}
+<div class="grid grid-cols-3 gap-4 px-8 py-4">
+    <div class="overflow-auto overscroll-scroll col-span-3 border h-fit">
+          <table class="table-fixed sortable w-full">
+                <thead style="background-color: silver">
+                    <tr class="text-center">
+                        <th class="w-16 table-border">Chr</th>
+                        <th class="w-24 table-border">Position</th>
+                        <th class="w-24 table-border">Ref&gtAlt</th>
+                        <th class="w-24 table-border">Gene</th>
+                        <th class="w-36 table-border">Consequence</th>
+                        <th class="w-36 table-border">Transcript</th>
+                        <th class="w-32 table-border">AA_change</th>
+                        <th class="w-36 table-border">DNA_change</th>
+                        <th class="w-24 table-border">MisFit_S</th>
+                        <th class="w-24 table-border">MisFit_D</th>
+                        <th class="w-32 table-border">AlphaMissense</th>
+                        <th class="w-16 table-border">CADD</th>
+                        <th class="w-16 table-border">REVEL</th>
+                        <th class="w-16 table-border">gMVP</th>
+                        <th class="w-24 table-border">spliceAI</th>
+                        <th class="w-28 table-border">gnomAD4_AF</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm text-left">
+                    {% for v in dnvs %}
+                    <tr class="hover:bg-gray-100 text-center">
+                        <td class="table-border">{{v.chromosome}}</td>
+                        <td class="table-border">{{v.position}}</td>
+                        <td class="truncate table-border">{{v.ref}}&gt{{v.alt}}</td>
+                        <td class="truncate table-border">{{v.gene}}</td>
+                        <td class="truncate table-border">{{v.consequence if v.consequence != "."}}</td>
+                        <td class="table-border">{{v.transcript if v.transcript}}</td>
+                        <td class="truncate table-border">{{v.aa_change.split(":")[-1] if v.aa_change != "."}}</td>
+                        <td class="truncate table-border">{{v.dna_change.split(":")[-1] if v.dna_change != "."}}</td>
+                        <td class="table-border">{{v.MisFit_S if v.MisFit_S}}</td>
+                        <td class="table-border">{{v.MisFit_D if v.MisFit_D}}</td>
+                        <td class="table-border">{{v.AlphaMissense if v.AlphaMissense}}</td>
+                        <td class="table-border">{{v.cadd if v.cadd}}</td>
+                        <td class="table-border">{{v.revel if v.revel}}</td>
+                        <td class="table-border">{{v.gmvp if v.gmvp}}</td>
+                        <td class="table-border">{{v.spliceai if v.spliceai}}</td>
+                        <td class="table-border">{{v.gnomad4_af if v.gnomad4_af}}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

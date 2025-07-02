@@ -1,0 +1,102 @@
+.tooltip-text {
+    visibility: hidden;
+    position: absolute;
+    /* z-index: 2; */
+    width: 180px;
+    color: white;
+    font-size: 12px;
+    font-weight: 100;
+    background-color: #334155;
+    border-radius: 10px;
+    padding: 10px 15px 10px 15px;
+
+    opacity: 0;
+  	transition: opacity 0.3s;
+    }
+  
+  .tooltip-text::before {
+    content: "";
+    position: absolute;
+    transform: rotate(45deg);
+    background-color: #334155;
+    padding: 5px;
+    z-index: -1;
+  }
+  
+  .hover-text:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  #top {
+    top: -40px;
+    left: -50%;
+  }
+  
+  #top::before {
+    top: 80%;
+    left: 45%;
+  }
+  
+  #bottom {
+    top: 25px;
+    left: -80%;
+  }
+  
+  #bottom::before {
+    top: -3%;
+    left: 47.5%;
+  }
+  
+  #left {
+    top: -8px;
+    right: 120%;
+  }
+  
+  #left::before {
+    top: 35%;
+    left: 94%;
+  }
+  
+  #right {
+    top: -8px;
+    left: 120%;
+  }
+  
+  #right::before {
+    top: 35%;
+    left: -2%;
+  }
+  
+  .hover-text {
+    position: relative;
+    display: inline-block;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  
+/*collasible bar*/
+.collapsible {
+  background-color: #e4e4e4;
+  color: black;
+  cursor: pointer;
+  padding: 15px;
+  width: 100%;
+  border: 1px solid grey;
+  border-collapse: collapse;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+}
+  
+  .active, .collapsible:hover {
+    background-color: #d7d7d7;
+  }
+  
+  .content {
+    padding: 0 18px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+    background-color: #f1f1f1;
+  }

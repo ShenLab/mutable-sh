@@ -1,0 +1,967 @@
+{% extends 'base.html' %}
+
+{% block title %}Gene{% endblock %}
+
+{% block body %}
+<div class="grid grid-cols-3 gap-4 px-8">
+    <div class="overflow-auto overscroll-scroll col-span-3 border h-fit">
+        <table class="sortable table-fixed w-full table-bordered table-striped">
+            <thead class="thead-dark" style="text-align:center">
+                <tr>
+                    <th class="w-16">Chr</th>
+                    <th class="w-24">Position</th>
+                    <th class="w-24">Ref&gtAlt</th>
+                    <th class="w-36">Sample</th>
+
+                    <th class="w-24">Cohort</th>
+                    <th class="w-24">Condition </th>
+                    <th class="w-24">Status</th>
+                    <th class="w-36">Consequence</th>
+                    <th class="w-36">Transcript</th>
+                    <th class="w-32">AA_change </th>
+                    <th class="w-36">DNA_change</th>
+                    <th class="w-24">MisFit_S</th>
+                    <th class="w-24">MisFit_D</th>
+                    <th class="w-36">AlphaMissense</th>
+                    <th class="w-16">CADD</th>
+                    <th class="w-20">REVEL</th>
+                    <th class="w-16">gMVP</th>
+                    <th class="w-24">spliceAI</th>
+                    <th class="w-28">gnomAD4_AF</th>
+                    <!-- <th style="display: none;"> sample_related_genes(chr,pos,ref>alt,gene)</th> -->
+                </tr>
+            </thead>
+            <tbody class="text-sm text-center" style="overflow-x: scroll">
+                {% for v in dnvs %}
+                <tr class="hover:bg-gray-100" style="height:28px">
+                    <td>{{v.chromosome}}</td>
+                    <td>{{v.position}}</td>
+                    <td class="truncate">{{v.ref}}&gt{{v.alt}}</td>
+                    <td class="truncate">
+                      <a class="text-blue-600 hovertxt visited:text-purple-600" href="/sample/{{v.sample}}">{{v.sample}}</a>
+                    </td>
+
+                    <td>{{v.cohort}}</td>
+                    <td>{{v.cohort_condition}}</td> 
+                    <td>{{v.status if v.status}}</td>
+                    <td class="truncate">{{v.consequence if v.consequence != "."}}</td>
+                    <td>{{v.transcript if v.transcript}}</td>
+                    <td class="truncate">{{v.aa_change.split(":")[-1] if v.aa_change != "."}}</td>
+                    <td class="truncate">{{v.dna_change.split(":")[-1] if v.dna_change != "."}}</td>
+                    <td id="misfit_s">{{v.MisFit_S if v.MisFit_S}}</td>
+                    <td id="misfit_d">{{v.MisFit_D if v.MisFit_D}}</td>
+                    <td>{{v.AlphaMissense if v.AlphaMissense}}</td>
+                    <td>{{v.cadd if v.cadd}}</td>
+                    <td>{{v.revel if v.revel}}</td>
+                    <td>{{v.gmvp if v.gmvp}}</td>
+                    <td>{{v.spliceai if v.spliceai}}</td>
+                    <td>{{v.gnomad4_af if v.gnomad4_af}}</td>
+                    <!-- <td style="display: none;">{{v.sample_other_dnvs if v.sample_other_dnvs}}</td> -->
+                  </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+  
+  var cells_misfit_s = document.querySelectorAll('#misfit_s');
+  cells_misfit_s.forEach(cell => {
+      var value = parseFloat(cell.textContent);
+
+      if (value != 0 & !isNaN(value)) {
+        var roundedValue = value.toPrecision(2);
+        cell.textContent = roundedValue;
+      } else {
+        cell.textContent = "";
+      }
+  });
+
+  var cells_misfit_d = document.querySelectorAll('#misfit_d');
+  cells_misfit_d.forEach(cell => {
+      var value = parseFloat(cell.textContent);
+
+      if (value != 0 & !isNaN(value)) {
+        var roundedValue = value.toPrecision(2);
+        cell.textContent = roundedValue;
+      } else {
+        cell.textContent = "";
+      }
+  });
+
+</script>
+
+
+<div class="flex flex-row px-8">
+    <div class="px-4 py-4 basis-auto">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+      <button class="btn" style="background-color:#52595D;font-size:x-small;color:white;" onclick="popDownloadLollipop('{{gene}}')">
+        <i class="fa fa-download"></i> Download Lollipop Plot
+      </button>
+    </div>
+
+    <div class="px-6 py-4 basis-auto text-sm align-center text-center">
+      * <text class="font-bold">UniprotID</text>: {{metrics.uniprot_id}}, <text class="font-bold">Ensembl Gene ID</text>: {{metrics.ensembl_id}}
+    </div>
+</div>
+
+<div class="pl-4 pb-3" style="position: relative;" id="middle-part">
+  <div id="pop" style="position: relative; width:100%"></div>
+
+  <div style="position: absolute; z-index: 10; width:100%; left:20px; top: 495px">
+    <label for="plotSelect">Select Plot: </label>
+    <select id="plotSelect" onchange="showPlot(this.value)" style="background-color:lightgrey; border: 1px solid silver">
+      <option value="plddt">pLDDT</option>
+      <option value="constraint">Regional Constraint</option>
+    </select>
+  </div>
+
+  <div id="constraint" style="position: absolute; z-index: 8; width:100%; top: 510px"></div>
+  <div id="plddt" style="position: absolute; z-index: 8; width:100%; top: 510px"></div>
+
+</div>
+
+<footer>
+  <ol class="py-1" style="max-width: 1200px">
+    <li><text class="font-bold">pLI</text>: The tolerance of a given gene to the loss of function on the basis of the number of protein truncating variants. pLI closer to 1 indicates that the gene or transcript cannot tolerate protein truncating variation. </li>
+    <li><text class="font-bold">o/e</text>: The observed/expected ratio of LoF (Loss of Function) variants in the gene. When a gene has a low O/E value, it is under stronger selection for that class of variation than a gene with a higher O/E value. </li>
+    <li><text class="font-bold">mis-Z</text>: The z-score for missense variation of the gene. Positive Z-scores indicate more constraint (fewer observed variants than expected), and negative scores indicate less constraint (more observed variants than expected). 
+      A greater Z-score indicates more intolerance to the class of variation.</li>
+    <li><text class="font-bold">S<sub>het</sub></text>: Estimation of the selective effect against heterozygous PTVs (protein truncated variant). Highly penetrant PTV for severe early onset condition should have high S<sub>het</sub>.</li>
+    <li><text class="font-bold">S<sub>m</sub></text>: Gene level missense selection for MisFit v1.5 Model.</li>
+  </ol>
+
+  <div class="px-3" style="max-width: 1200px;">[1][2][3] <em> Data are used from gnomAD v4.0</em> https://gnomad.broadinstitute.org/publications</div>
+  <div class="px-3" style="max-width: 1200px;">[4] Zeng, T., Spence, J. P., Mostafavi, H., & Pritchard, J. K. (2024). Bayesian estimation of gene constraint from an evolutionary model with gene features. bioRxiv : the preprint server for biology,
+     2023.05.19.541520. https://doi.org/10.1101/2023.05.19.541520 </div>
+  <div class="px-3 pb-3" style="max-width: 1200px;">[5] Zhao, Y., Zhong, G., Hagen, J., Pan, H., Chung, W. K., & Shen, Y. (2023). A probabilistic graphical model for estimating selection coefficient of missense variants from human population sequence data. medRxiv : 
+    the preprint server for health sciences, 2023.12.11.23299809. https://doi.org/10.1101/2023.12.11.23299809 </div>
+</footer>
+
+<!-- lollipop plot script -->
+<script type="text/javascript">
+    var gene_symbol = {{gene|tojson}}
+    var chartSpec1 = {
+        "$schema": "https://vega.github.io/schema/vega/v5.json",
+        "description": "Lollipop plots showing mutation variants along protein in 2d",
+        "background": "white",
+        "width": 1400, 
+        "height": 100,
+        "padding": {"left": 35, "right": 50, "top": 250, "bottom": 440},
+        "autosize": "none",
+        "signals": [
+          {
+            "name": "color_legend",
+            "value": "consequence",
+            "bind": {
+              "input": "radio",
+              "options": ["consequence", "condition"]
+            }
+          },
+          {
+            "name": "text_size",
+            "value": 8,
+            "bind": {
+              "input": "range",
+              "min": 4,
+              "max": 20,
+              "step": 2
+            }
+          },
+          {
+            "name": "spread",
+            "value": 3.5,
+            "bind": {
+              "input": "range",
+              "min": 3.5,
+              "max": 10,
+              "step": 0.5
+            }
+          },
+          {
+            "name": "misfit_d",
+            "value": 0,
+            "bind": {
+              "input": "range",
+              "min": 0,
+              "max": 1,
+              "step": 0.02
+            }
+          },
+          {
+            "name": "alphamissense",
+            "value": 0,
+            "bind": {
+              "input": "range",
+              "min": 0,
+              "max": 1,
+              "step": 0.02
+            }
+          },
+          {
+            "name": "distance_in_1d",
+            "value": 30,
+            "bind": {
+                "input": "range",
+                "min": 3,
+                "max": 200,
+                "step": 1
+            }
+          },
+          {
+            "name": "distance_in_3d",
+            "value": 10,
+            "bind": {
+                "input": "range",
+                "min": 1,
+                "max": 15,
+                "step": 1
+            }
+          },
+          {
+            "name": "clicked", "value": null,
+            "on": [
+              {
+                "events": "@legendSymbol:click, @legendLabel:click",
+                "update": "{value: datum.value}",
+                "force": true
+              }
+            ]
+          },
+          {
+            "description": "State variable for active node fix status.",
+            "name": "fix", "value": false,
+            "on": [
+              {
+                "events": "symbol:mouseout[!event.buttons], window:mouseup",
+                "update": "false"
+              },
+              {
+                "events": "symbol:mouseover",
+                "update": "fix || true"
+              },
+              {
+                "events": "[symbol:mousedown, window:mouseup] > window:mousemove!",
+                "update": "xy()",
+                "force": true
+              }
+            ]
+          },
+          {
+            "description": "Graph node most recently interacted with.",
+            "name": "node", "value": null,
+            "on": [
+              {
+                "events": "symbol:mouseover",
+                "update": "fix === true ? item() : node"
+              }
+            ]
+          },
+          {
+            "description": "Flag to restart Force simulation upon data changes.",
+            "name": "restart", "value": false,
+            "on": [
+              {"events": {"signal": "fix"}, "update": "fix && fix.length"}
+            ]
+          },
+          {"name": "cx", "update": "width / 2"},
+          {"name": "cy", "update": "height / 2"},
+          {"name": "bunch", "value": 0.5, "on": [{"events": "mousemove", "update": "0.0"}]},
+          {"name": "static", "value": true}
+        ],
+        "data": [
+          {{variants|safe}},
+          {{sequence|safe}},
+          {{domains|safe}},
+          {{distance|safe}},
+            // {{aa_change|safe}},
+          {
+            "name": "selected",
+            "on": [
+              {"trigger": "clicked", "toggle": "clicked"}
+            ]
+          }
+        ],
+        "scales": [
+          {
+            "name": "xscale",
+            "type": "linear",
+            "domain": {"data": "sequence", "field": "length"},
+            "range": "width",
+          },
+          {
+            "name": "yscaleUp",
+            "type": "linear",
+            "range": "height",
+            "domain": {"data": "variants", "field": "count"},
+            "clamp": true,
+            "padding": 0,
+          },
+          {
+            "name": "yscaleDown",
+            "type": "linear",
+            "domain": {"data": "variants", "field": "count"},
+            "reverse": true,
+            "range": "height",
+            "clamp": true,
+            "padding": 0,
+          },
+          {
+            "name": "consequence_color",
+            "type": "ordinal",
+            
+            "domain": {{consequences|safe}},
+            "range": [
+              "#66c2a5", "#1f77b4", "#d62728", "#843c39",
+              "#aec7e8", "#9c9ede", "#b5cf6b", "#cedb9c",
+              "#e6550d", "#d95f02", "#e45756", "#ff7f00",
+              "#8da0cb"
+            ]
+          },
+          {
+            "name": "condition_color",
+            "type": "ordinal",
+            "domain": {"data": "variants", "field": "condition"},
+            "range": {"scheme": "category10"}
+          },
+          {
+            "name": "domain_color",
+            "type": "ordinal",
+            "domain": {"data": "domains", "field": "description"},
+            "range": {"scheme": "set3"}
+          },
+          {
+            "name": "gene_name",
+            "type": "ordinal"
+          }
+        ],
+        "axes": [
+          {"orient": "bottom", "scale": "xscale", "labelOffset": 0, "tickSize": 10, "labelFontSize": {"signal": "text_size"}, "labelFontWeight": "bold", 
+              "encode": {"labels": {"update": {"text": {"signal": "datum.value === 0 ? '' : datum.value"}}}
+          }},
+          {"orient": "left", "scale": "yscaleUp", "offset": 0, "tickMinStep": 1, "labelFontSize": {"signal": "text_size"}, "labelFontWeight": "bold", "title": ["#variant","counts"],"titleAngle": 0, "titleAlign": "left","titleBaseline": "bottom","titleX": -25,"titleY": -20},
+          {"orient": "left", "scale": "yscaleDown", "offset": 0, "tickMinStep": 1, "position": 100,"labelFontSize": {"signal": "text_size"}, "labelFontWeight": "bold"}
+        ],
+        "legends": [
+          {
+            "orient": "none",
+            "legendX": -10,
+            "legendY": [
+              {"test": "color_legend == 'consequence'", "value": -225},
+              {"value": -200}
+            ],
+            "direction": "horizontal",
+            "fill": "consequence_color",
+            "title": "Consequence",
+            "values": {{consequences|safe}},
+            "titleFontSize": [
+              {
+                "test": "color_legend == 'consequence'", "value": 12
+              },
+              {"value": 0}
+            ],
+            "encode": {
+              "symbols": {
+                "name": "legendSymbol",
+                "interactive": true,
+                "update": {
+                  "stroke": {"value": "black"},
+                  "strokeWidth": {"value": 1},
+                  "opacity": [
+                    {"test": "color_legend != 'consequence'", "value": 0.0},
+                    {"test": "!length(data('selected')) || !indata('selected', 'value', datum.value)", "value": 0.7},
+                    {"value": 0.15}
+                  ],
+                  "size": {"signal": "if(color_legend == 'consequence', 64, 0)"},
+                }
+              },
+              "labels": {
+                "name": "legendLabel",
+                "interactive": true,
+                "update": {
+                  "opacity": [
+                    {"test": "color_legend != 'consequence'", "value": 0.0},
+                    {"test": "!length(data('selected')) || !indata('selected', 'value', datum.value)", "value": 1},
+                    {"value": 0.25}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "orient": "none",
+            "legendX": -10,
+            "legendY": [
+              {"test": "color_legend == 'condition'", "value": -240},
+              {"value": -200}
+            ],
+            "direction": "horizontal",
+            "fill": "condition_color",
+            "title": "Condition",
+            "values": {{conditions|safe}},
+            "titleFontSize": [
+              {
+                "test": "color_legend == 'condition'", "value": 12
+              },
+              {"value": 0}
+            ],
+            "encode": {
+              "symbols": {
+                "name": "legendSymbol",
+                "interactive": true,
+                "update": {
+                  "stroke": {"value": "black"},
+                  "strokeWidth": {"value": 1},
+                  "opacity": [
+                    {"test": "color_legend != 'condition'", "value": 0.0},
+                    {"test": "!length(data('selected')) || !indata('selected', 'value', datum.value)", "value": 0.7},
+                    {"value": 0.15}
+                  ],
+                  "size": {"signal": "if(color_legend == 'condition', 64, 0)"},
+                }
+              },
+              "labels": {
+                "name": "legendLabel",
+                "interactive": true,
+                "update": {
+                  "opacity": [
+                    {"test": "color_legend != 'condition'", "value": 0.0},
+                    {"test": "!length(data('selected')) || !indata('selected', 'value', datum.value)", "value": 1},
+                    {"value": 0.25}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "orient": "none",
+            "legendX": -10,
+            "legendY": -180,
+            "direction": "horizontal",
+            "stroke": "domain_color",
+            "symbolType": "square",
+            "fill": "domain_color",
+            "title": "Domains",
+            "encode": {
+              "symbols": {
+                "name": "legendSymbol",
+                "update": {
+                  "opacity": {"value": 0.5},
+                  "size": {"value": 64}
+                }
+              },
+              "labels": {
+                "name": "legendLabel",
+                "update": {
+                  "opacity": {"value": 1}
+                }
+              }
+            }
+          },
+          {
+            "orient": "none",
+            "legendX": 600,
+            "legendY": -140,
+            "direction": "horizontal",
+            "stroke": "gene_name",
+            "title": gene_symbol,
+            "titleFontSize": 16,
+            "fillColor": "#e6e6e6",
+            "padding": 8
+          }
+        ],
+        "marks": [
+          //the lollipop nodes
+          {
+            "name": "nodes",
+            "type": "symbol",
+            "from": {"data": "variants"},
+            "on": [
+              {
+                "trigger": "fix",
+                "modify": "node",
+                "values": "fix === true ? {fx: node.x} : {fx: fix[0]}"
+              },
+              {
+                "trigger": "!fix",
+                "modify": "node", "values": "{fx: null}"
+              }
+            ],
+            "encode": {
+              "enter": {
+                //"fill": {"scale": "consequence_color", "field": "type"},
+                "xfocus": {"scale": "xscale", "field": "position"},
+                "yfocus": [
+                  {
+                    // "test": "datum.type == 'missense'",
+                    "test": "indexof(datum.type, 'missense') !== -1",
+                    "scale": "yscaleUp",
+                    "field": "count"
+                  },
+                  {
+                    "scale": "yscaleDown",
+                    "field": "count",
+                    "offset": 100
+                  },
+                ],
+                "zero": {"scale": "yscaleUp", "value": 0},
+              },
+              "update": {
+                "fill": [
+                  {
+                    "test": "color_legend == 'condition'",
+                    "scale": "condition_color",
+                    "field": "condition"
+                  },
+                  {
+                    "scale": "consequence_color",
+                    "field": "type"
+                  }
+                ],
+                "stroke": {"value": "black"},
+                "strokeWidth": {"value": 1},
+                "zindex": {"value": 0},
+                "size": [
+                  {
+                    "test": "indata('selected', 'value', datum.type) || indata('selected', 'value', datum.condition) || datum.type == 'invisible' || (datum.alphamissense != 'none' && datum.alphamissense < alphamissense) || (datum.misfit_d != 'none' && datum.misfit_d < misfit_d)",
+                    "value": 0
+                  },
+                  {"signal": "text_size * 4.5"},
+                ],
+              },
+            },
+            "transform": [
+              {
+                "type": "force",
+                "iterations": 300,
+                "restart": {"signal": "restart"},
+                "static": {"signal": "static"},
+                "signal": "force",
+                "forces": [
+                  {"force": "collide", "radius": {"signal": "spread"}},
+                  {"force": "x", "x": "xfocus", "strength": {"signal": "bunch"}},
+                  {"force": "y", "y": "yfocus", "strength": 1},
+                ]
+              },
+              // {"type": "formula", "as": "ylabel", "expr": "datum.datum.type == 'missense' ? -1 * (datum.datum.count - 1) * 50 : scale('yscaleDown', datum.datum.count) + 120"},
+              // {"type": "formula", "as": "angle", "expr": "datum.datum.type == 'missense' ? -65 : 65"},
+              {"type": "formula", "as": "ylabel", "expr": "indexof(datum.datum.type, 'missense') !== -1 ? -1 * (datum.datum.count - 1) * 50 : scale('yscaleDown', datum.datum.count) + 120"},
+              {"type": "formula", "as": "angle", "expr": "indexof(datum.datum.type, 'missense') !== -1 ? -65 : 65"},
+              {
+                "type": "formula", 
+                "as": "modified_label",
+                "expr": "datum.datum.label"
+              }
+            ]
+          },
+          //the lollipop paths
+          {
+            "type": "path",
+            "from": {"data": "nodes"},
+            "interactive": false,
+            "encode": {
+              "update": {
+                "stroke": {"scale": "consequence_color", "field": "datum.type"}, //{"value": "#ccc"},
+                "strokeWidth": {"value": 1},
+                "path": {"field": "path"},
+                "opacity": [
+                  {
+                    "test": "datum.size == 0 || datum.type == 'invisible'",
+                    "value": 0
+                  },
+                  {"value": 0.5}
+                ],
+              }
+            },
+            "transform": [
+              {
+                "type": "linkpath",
+                "shape": "line",
+                "sourceX": "datum.x", "sourceY": "datum.y",
+                "targetX": "datum.xfocus", "targetY": "datum.zero",
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "from": {"data": "nodes"},
+            "encode": {
+              "enter": {
+                "fill": {"value": "#000"},
+                "text": {"field": "modified_label"},
+                "angle": {"field": "angle"},
+                "fontSize": {"value": 8},
+                "limit": {"value": 150}
+              },
+              "update": {
+                "fontSize": {"signal": "text_size"},
+                "opacity": [
+                  {
+                    "test": "datum.size == 0 || datum.type == 'invisible'",
+                    "value": 0
+                  },
+                  {"value": 1}
+                ],
+                "x": {"field": "x"},
+                "y": {"field": "ylabel"}
+              }
+            },
+          },
+          {
+            "type": "path",
+            "from": {"data": "nodes"},
+            "interactive": false,
+            "encode": {
+                "update": {
+                    "stroke": {"scale": "consequence_color", "field": "datum.type"},
+                    "strokeDash": {"value": [4, 8]},
+                    "strokeWidth": {"value": 1},
+                    "path": {"field": "path"},
+                    "opacity": [
+                        {
+                            "test": "datum.size == 0 || datum.type == 'invisible'",
+                            "value": 0
+                        },
+                        {"value": 0.5}
+                    ],
+                }
+            },
+            "transform": [
+              {
+                "type": "linkpath",
+                "shape": "line",
+                "sourceX": "datum.x", "sourceY": "datum.y",
+                "targetX": "datum.x", "targetY": "datum.ylabel",
+              }
+            ]
+          },
+          {
+            "type": "rect",
+            "from": {"data": "domains"},
+            "encode": {
+                "enter": {
+                    "fill": {"scale": "domain_color", "field": "description"},
+                    "x": {"scale": "xscale", "field": "location.start.value"},
+                    "x2": {"scale": "xscale", "field": "location.end.value"},
+                    "yc": {"scale": "yscaleUp", "value": 0},
+                    "height": {"value": 10},
+                    "fillOpacity": {"value": 0.5},
+                }
+            }
+          },
+          {
+            "type": "path",
+            "from": {"data": "distance"},
+            "encode": {
+                "update": {
+                "stroke": {"value": "#000"},
+                "strokeOpacity": {"signal": "1-datum.distance_3d * 0.06"},
+                "strokeWidth": {"value": 1},
+                "strokeDash": {"value":[5,2]},
+                "opacity": {"signal": "(datum.distance_1d >= distance_in_1d) && (datum.distance_3d <= distance_in_3d) ? 1 : 0"}
+                }
+            },
+            "transform": [
+              {
+                "type": "lookup",
+                "from": "nodes",
+                "key": "datum.position",
+                "fields": ["datum.resno_of_variant_1", "datum.resno_of_variant_2"],
+                "as": ["sourceNode", "targetNode"]
+              },
+              {
+                "type": "linkpath",
+                "sourceX": {"expr": "datum.sourceNode.x"},
+                "targetX": {"expr": "datum.targetNode.x"},
+                "sourceY": {"expr": "(datum.sourceNode.y < 100 && datum.targetNode.y < 100 && datum.sourceNode.size > 0 && datum.targetNode.size > 0) ? datum.sourceNode.y : -3000"},
+                "targetY": {"expr": "(datum.sourceNode.y < 100 && datum.targetNode.y < 100 && datum.sourceNode.size > 0 && datum.targetNode.size > 0) ? datum.targetNode.y : -3000"},
+                "shape": "curve"
+              }
+            ]
+          },
+      ]
+  }
+</script>
+
+
+<!-- regional depletion plot script -->
+<script type="text/javascript">
+    // var constraint_data = {{constraint_data|safe}}
+    var chartSpec2 = {
+      "$schema": "https://vega.github.io/schema/vega/v5.json",
+      "description": "Plot for reginal depletion of missense variants",
+      "background": "white",
+      "width": 1400, 
+      "height": 140,
+      "padding": {"left": 25, "right": 50, "top": 30, "bottom": 50},
+      "data": [
+        {{constraints|safe}},
+        {{sequence|safe}}
+      ],
+      "scales": [
+        {"name": "x", "type": "linear", "domain": {"data": "sequence", "field": "length"}, "range": "width"},
+        {"name": "constraint_color", "type": "linear", "domain": [0,1], "range": ["#001a66","#d8ecf3"], "clamp": true},
+        {"name": "gene_name", "type": "ordinal"}
+      ],
+      "axes": [
+        {"orient": "bottom", "scale": "x", "title": "protein length"}
+      ],
+      "marks": [
+        {
+          "type": "rect",
+          "from": {"data": "constraints"},
+          "encode": {
+            "enter": {
+              "x": {"scale": "x", "field": "start_aa"},
+              "x2": {"scale": "x", "field": "stop_aa"},
+              "y": {"value": 80},
+              "height": {"value": 30},
+              "fill": {"scale": "constraint_color", "field": "oe"},
+              "stroke": {"value": "black"},
+              "strokeWidth": {"value": 1}
+            },
+            "update": {
+              "fillOpacity": {"value": 1},
+              "strokeOpacity": {"value": 0.5}
+            }
+          }
+        },
+        {
+          "type": "text",
+          "from": {"data": "constraints"},
+          "encode": {
+            "enter": {
+              "x": {
+                "signal": "(scale('x', datum.start_aa) + scale('x', datum.stop_aa)) / 2"
+              },
+              "y": {"value": 125},
+              "text": {"signal": "format(datum.oe, '.2f')"},
+              "align": {"value": "center"},
+              "baseline": {"value": "middle"},
+              "fill": {"value": "black"},
+              "fontSize": {"value": 10},
+              "fontWeight": {"value": "bold"}
+            }
+          }
+        },
+        {
+          "type": "text",
+          "encode": {
+            "enter": {
+              "x": {"value":-10}, 
+              "y": {"value": 15}, 
+              "text": {"value": ["Regional", "Depletion"]},
+              "align": {"value": "left"},
+              "baseline": {"value": "top"},
+              "fontSize": {"value": 12},
+              "fontWeight": {"value": "bold"}
+            }
+          }
+        },
+        {
+          "type": "text",
+          "encode": {
+            "enter": {
+              "text": {
+                "signal": "length(data('constraints')) === 0 ? 'Not Significant' : ''"
+              },
+              "x": {"value": 700},
+              "y": {"value": 100},
+              "align": {"value": "center"},
+              "baseline": {"value": "middle"},
+              "fontSize": {"value": 20},
+              "fontWeight": {"value": "bold"}
+            }
+          }
+        }
+      ],
+      "legends": [
+        {
+          "fill": "constraint_color",
+          "title": "o/e",
+          "orient": "right",
+          "offset": 60,
+          "padding": -15,
+          "titlePadding": 5,
+          "symbolType": "circle",
+          "symbolSize": 10,
+          "tickCount": 5,
+          "labelOffset": 10,
+          "encode": {
+            "labels": {
+              "update": {
+                "text": {
+                  "signal": "datum.value === 1.0 ? '1.0+':format(datum.value, '.1f')"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+</script>
+
+<!-- plddt plot script -->
+<script type="text/javascript">
+  var chartSpec3 = {
+    "$schema": "https://vega.github.io/schema/vega/v5.json",
+    "background": "white",
+    "width": 1400, 
+    "height": 140,
+    "padding": {"left": 16, "right": 50, "top": 30, "bottom": 50},
+    "data": [
+      {{plddt|safe}},
+      {
+        "name": "segments",
+        "source": "scores",
+        "transform": [
+          {
+            "type": "window",
+            "ops": ["row_number"],
+            "as": ["index"]
+          },
+          {
+            "type": "filter",
+            "expr": "datum.index < data('scores').length"
+          },
+          {
+            "type": "formula",
+            "as": "x2",
+            "expr": "data('scores')[datum.index].location"
+          },
+          {
+            "type": "formula",
+            "as": "y2",
+            "expr": "data('scores')[datum.index].pLDDT"
+          }
+        ]
+      }
+    ],
+    "scales": [
+      {
+        "name": "xscale",
+        "type": "linear",
+        "domain": {"data": "scores", "field": "location"},
+        "range": "width"
+      },
+      {
+        "name": "yscale",
+        "type": "linear",
+        "domain": {"data": "scores", "field": "pLDDT"},
+        "range": "height"
+      },
+      {
+        "name": "colorScale",
+        "type": "linear",
+        "domain": {"data": "scores", "field": "pLDDT"},
+        "range": ["red", "blue"]
+      }
+    ],
+    "axes": [
+      {"orient": "bottom", "scale": "xscale", "title": "protein length"},
+      {"orient": "left", "scale": "yscale", "title": "pLDDT", "offset": 0, "titleAngle": 0, "titleX": 0,"titleY": -15}
+    ],
+    "marks": [
+      {
+        "type": "rule",
+        "from": {"data": "segments"},
+        "encode": {
+          "enter": {
+            "x": {"scale": "xscale", "field": "location"},
+            "y": {"scale": "yscale", "field": "pLDDT"},
+            "x2": {"scale": "xscale", "field": "x2"},
+            "y2": {"scale": "yscale", "field": "y2"},
+            "stroke": {"scale": "colorScale", "field": "pLDDT"},
+            "strokeWidth": {"value": 2}
+          }
+        }
+      }
+    ]
+  }
+</script>
+
+<script type="text/javascript">
+  var view; // lollipop
+  view = new vega.View(vega.parse(chartSpec1))
+      .renderer('svg')
+      .initialize('#pop')
+      .run();
+
+  var view2; // constraint
+  view2 = new vega.View(vega.parse(chartSpec2))
+      .renderer('svg')
+      .initialize('#constraint')
+      .run();
+
+  var view3; // plddt
+  view3 = new vega.View(vega.parse(chartSpec3))
+      .renderer('svg')
+      .initialize('#plddt')
+      .run();
+  
+  //new added here
+  function showPlot(plotId) {
+    document.getElementById('constraint').style.display = 'none';
+    document.getElementById('plddt').style.display = 'none';
+
+    document.getElementById(plotId).style.display = 'block'; // Show the selected plot
+  }
+  showPlot('plddt'); // default
+
+  //download plots
+  function popDownloadLollipop(gene) {
+    Promise.all([
+      view.toImageURL('png', 3),
+      view2.toImageURL('png', 3),
+      view3.toImageURL('png', 3)
+    ]).then(function(urls) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      const imgPromises = urls.map(url => {
+        const img = new Image();
+        img.src = url;
+        return new Promise(resolve => {
+          img.onload = () => resolve(img);
+        });
+      });
+
+      Promise.all(imgPromises).then(images => {
+        const firstImage = images[0];
+        const cropHeight = firstImage.height * 0.6; // crop the first lollipop image at botton=m
+
+        const width = Math.max(...images.map(img => img.width))+50;
+        const height = images.reduce((sum, img) => sum + img.height, 0);
+
+        canvas.width = width;
+        canvas.height = height;
+
+        ctx.fillStyle = "#FFFFFF"; // Set background color
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.drawImage(firstImage, 0, 0);
+
+        // Draw the remaining images
+        let yOffset = cropHeight;
+        for (let i = 1; i < images.length; i++) {
+          const img = images[i];
+          ctx.drawImage(img, 0, yOffset);
+          yOffset += img.height;
+        }
+
+        // Export the combined canvas as an image
+        canvas.toBlob(function(blob) {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `plots_${gene}.png`;
+          link.click();
+        });
+      });
+    }).catch(function(error) {
+      console.error('Error generating combined chart: ', error);
+    });
+  }
+
+</script>
+{% endblock %}

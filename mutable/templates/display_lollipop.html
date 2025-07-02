@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.30.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.20.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.26.0"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+  <div class="font-mono">
+    <nav class="navbar navbar-expand-lg navbar-light px-2">
+      <div class="container-fluid">          
+          <a href="{{ url_for('index') }}" class="navbar-brand text-slate-900 text-xl font-bold">Mutable</a>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                  <li class="nav-item">
+                      <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link current" href="{{ url_for('views.lollipop')}}">Lollipop</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link" href="http://172.234.200.101:8080/misfit/">Misfit</a>
+                  </li>
+              </ul>
+              <ul class="navbar-nav justify-content-end">
+                  <li>
+                      <a href="{{ url_for('auth.logout') }}" style="color:SlateGray">Logout</a>
+                  </li>
+              </ul>
+
+          </div>
+      </div>
+    </nav>
+
+    <div style="padding-left: 5%; padding-top: 2%;">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+          <button class="btn" style="background-color:#52595D;font-size:x-small;color:white;" id="downloadBtn" onclick="popDownloadLollipop('{{gene}}')">
+            <i class="fa fa-download"></i> Download Lollipop Plot
+          </button>
+    </div>
+    
+    <div id="pop" style="padding-left: 2%; padding-top: 2%;"></div>
+
+    <script>
+        const spec = {
+            "$schema": "https://vega.github.io/schema/vega/v5.json",
+            "description": "Lollipop plots showing mutation variants along protein in 2d",
+            "background": "white",
+            "width": 1400, 
+            "height": 100,
+            "padding": {"left": 30, "right": 50, "top": 150, "bottom": 220},
+            "autosize": "none",
+            "signals": [
+              {
+                "name": "color_legend",
+                "value": "consequence",
+                // "bind": {
+                //   "input": "radio",
+                //   "options": ["consequence"]
+                // }
+              },
+              {
+                "name": "text_size",
+                "value": 8,
+                "bind": {
+                  "input": "range",
+                  "min": 4,
+                  "max": 20,
+                  "step": 2
+                }
+              },
+              {
+                "name": "spread",
+                "value": 3.5,
+                "bind": {
+                  "input": "range",
+                  "min": 3.5,
+                  "max": 10,
+                  "step": 0.5
+                }
+              },
+              {
+                "name": "distance_in_1d",
+                "value": 30,
+                "bind": {
+                    "input": "range",
+                    "min": 3,
+                    "max": 200,
+                    "step": 1
+                }
+              },
+              {
+                "name": "distance_in_3d",
+                "value": 10,
+                "bind": {
+                    "input": "range",
+                    "min": 1,
+                    "max": 15,
+                    "step": 1
+                }
+              },
+              {
+                "name": "clicked", "value": null,
+                "on": [
+                  {
+                    "events": "@legendSymbol:click, @legendLabel:click",
+                    "update": "{value: datum.value}",
+                    "force": true
+                  }
+                ]
+              },
+              {
+                "description": "State variable for active node fix status.",
+                "name": "fix", "value": false,
+                "on": [
+                  {
+                    "events": "symbol:mouseout[!event.buttons], window:mouseup",
+                    "update": "false"
+                  },
+                  {
+                    "events": "symbol:mouseover",
+                    "update": "fix || true"
+                  },
+                  {
+                    "events": "[symbol:mousedown, window:mouseup] > window:mousemove!",
+                    "update": "xy()",
+                    "force": true
+                  }
+                ]
+              },
+              {
+                "description": "Graph node most recently interacted with.",
+                "name": "node", "value": null,
+                "on": [
+                  {
+                    "events": "symbol:mouseover",
+                    "update": "fix === true ? item() : node"
+                  }
+                ]
+              },
+              {
+                "description": "Flag to restart Force simulation upon data changes.",
+                "name": "restart", "value": false,
+                "on": [
+                  {"events": {"signal": "fix"}, "update": "fix && fix.length"}
+                ]
+              },
+              {"name": "cx", "update": "width / 2"},
+              {"name": "cy", "update": "height / 2"},
+              {"name": "bunch", "value": 0.5, "on": [{"events": "mousemove", "update": "0.0"}]},
+              {"name": "static", "value": true}
+            ],
+            "data": [
+              {{variants|safe}},
+              {{sequence|safe}},
+              {{domains|safe}},
+              {{distance|safe}},
+              {
+                "name": "selected",
+                "on": [
+                  {"trigger": "clicked", "toggle": "clicked"}
+                ]
+              }
+            ],
+            "scales": [
+              {
+                "name": "xscale",
+                "type": "linear",
+                "domain": {"data": "sequence", "field": "length"},
+                "range": "width",
+              },
+              {
+                "name": "yscaleUp",
+                "type": "linear",
+                "range": "height",
+                "domain": {"data": "variants", "field": "count"},
+                "clamp": true,
+                "padding": 0,
+              },
+              {
+                "name": "yscaleDown",
+                "type": "linear",
+                "domain": {"data": "variants", "field": "count"},
+                "reverse": true,
+                "range": "height",
+                "clamp": true,
+                "padding": 0,
+              },
+              {
+                "name": "consequence_color",
+                "type": "ordinal",
+                "domain": [
+                    "missense", "synonymous", "frameshift", "stop_gained",
+                    "3_prime_utr", "inframe_deletion", "splice_region", "splice_donor",
+                    "start_lost", "splice_acceptor", "stop_lost", "inframe_insertion",
+                    "5_prime_utr", "synonymous&splice_acceptor&coding_sequence", "synonymous&splice_donor", "start_lost&splice_region",
+                    "synonymous&splice_acceptor", "synonymous&splice_donor&coding_sequence", "stop_retained", "splice_donor&coding_sequence",
+                    "stop_gained&frameshift", "frameshift&splice_donor", "stop_gained&inframe_insertion", "splice_region&5_prime_utr",
+                    "splice_acceptor&coding_sequence", "3_prime_utr&coding_sequence", "synonymous&frameshift&splice_donor", "5_prime_utr&coding_sequence",
+                    "inframe_deletion&splice_donor", "stop_lost&frameshift", "splice_region&3_prime_utr", "stop_gained&inframe_deletion",
+                    "frameshift&splice_acceptor", "synonymous&inframe_deletion&splice_donor", "frameshift&splice_region", "synonymous&frameshift&splice_acceptor",
+                    "inframe_deletion&splice_region", "stop_lost&inframe_deletion", "inframe_insertion&stop_retained", "start_retained"
+                ],
+                "range": [
+                  "#66c2a5", "#1f77b4", "#d62728", "#843c39",
+                  "#aec7e8", "#9c9ede", "#b5cf6b", "#cedb9c",
+                  "#e6550d", "#d95f02", "#e45756", "#ff7f00",
+                  "#8da0cb"
+                ]
+              },
+              {
+                "name": "domain_color",
+                "type": "ordinal",
+                "domain": {"data": "domains", "field": "description"},
+                "range": {"scheme": "set3"}
+              }
+            ],
+            "axes": [
+              {"orient": "bottom", "scale": "xscale", "labelOffset": 5, "tickSize": 10, "labelFontSize": {"signal": "text_size"}, "labelFontWeight": "bold"},
+              {"orient": "left", "scale": "yscaleUp", "offset": 5, "tickMinStep": 1, "labelFontSize": {"signal": "text_size"}, "labelFontWeight": "bold"},
+              {"orient": "left", "scale": "yscaleDown", "offset": 5, "tickMinStep": 1, "position": 100,"labelFontSize": {"signal": "text_size"}, "labelFontWeight": "bold"}
+            ],
+            "legends": [
+              {
+                "orient": "none",
+                "legendX": 0,
+                "legendY": [
+                  {"test": "color_legend == 'consequence'", "value": 220},
+                  {"value": -200}
+                ],
+                "direction": "horizontal",
+                "fill": "consequence_color",
+                "title": "Consequence",
+                "values": {{consequences|safe}},
+                "titleFontSize": [
+                  {
+                    "test": "color_legend == 'consequence'", "value": 12
+                  },
+                  {"value": 0}
+                ],
+                "encode": {
+                  "symbols": {
+                    "name": "legendSymbol",
+                    "interactive": true,
+                    "update": {
+                      "stroke": {"value": "black"},
+                      "strokeWidth": {"value": 1},
+                      "opacity": [
+                        {"test": "color_legend != 'consequence'", "value": 0.0},
+                        {"test": "!length(data('selected')) || !indata('selected', 'value', datum.value)", "value": 0.7},
+                        {"value": 0.15}
+                      ],
+                      "size": {"signal": "if(color_legend == 'consequence', 64, 0)"},
+                    }
+                  },
+                  "labels": {
+                    "name": "legendLabel",
+                    "interactive": true,
+                    "update": {
+                      "opacity": [
+                        {"test": "color_legend != 'consequence'", "value": 0.0},
+                        {"test": "!length(data('selected')) || !indata('selected', 'value', datum.value)", "value": 1},
+                        {"value": 0.25}
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "orient": "none",
+                "legendX": 0,
+                "legendY": 260,
+                "direction": "horizontal",
+                "stroke": "domain_color",
+                "symbolType": "square",
+                "fill": "domain_color",
+                "title": "Domains",
+                "encode": {
+                  "symbols": {
+                    "name": "legendSymbol",
+                    "update": {
+                      "opacity": {"value": 0.5},
+                      "size": {"value": 64}
+                    }
+                  },
+                  "labels": {
+                    "name": "legendLabel",
+                    "update": {
+                      "opacity": {"value": 1}
+                    }
+                  }
+                }
+              }
+            ],
+            "marks": [
+              //the lollipop nodes
+              {
+                "name": "nodes",
+                "type": "symbol",
+                "from": {"data": "variants"},
+                "on": [
+                  {
+                    "trigger": "fix",
+                    "modify": "node",
+                    "values": "fix === true ? {fx: node.x} : {fx: fix[0]}"
+                  },
+                  {
+                    "trigger": "!fix",
+                    "modify": "node", "values": "{fx: null}"
+                  }
+                ],
+                "encode": {
+                  "enter": {
+                    //"fill": {"scale": "consequence_color", "field": "type"},
+                    "xfocus": {"scale": "xscale", "field": "position"},
+                    "yfocus": [
+                      {
+                        "test": "datum.type == 'missense'",
+                        "scale": "yscaleUp",
+                        "field": "count"
+                      },
+                      {
+                        "scale": "yscaleDown",
+                        "field": "count",
+                        "offset": 100
+                      },
+                    ],
+                    "zero": {"scale": "yscaleUp", "value": 0},
+                  },
+                  "update": {
+                    "fill": [
+                      // {
+                      //   "test": "color_legend == 'condition'",
+                      //   "scale": "condition_color",
+                      //   "field": "condition"
+                      // },
+                      {
+                        "scale": "consequence_color",
+                        "field": "type"
+                      }
+                    ],
+                    "stroke": {"value": "black"},
+                    "strokeWidth": {"value": 1},
+                    "zindex": {"value": 0},
+                    "size": [
+                      {
+                        // "test": "indata('selected', 'value', datum.type) || indata('selected', 'value', datum.condition) || datum.type == 'invisible'",
+                        "test": "indata('selected', 'value', datum.type) || datum.type == 'invisible'",
+                        "value": 0
+                      },
+                      {"signal": "text_size * 4.5"},
+                    ],
+                  },
+                },
+                "transform": [
+                  {
+                    "type": "force",
+                    "iterations": 300,
+                    "restart": {"signal": "restart"},
+                    "static": {"signal": "static"},
+                    "signal": "force",
+                    "forces": [
+                      {"force": "collide", "radius": {"signal": "spread"}},
+                      {"force": "x", "x": "xfocus", "strength": {"signal": "bunch"}},
+                      {"force": "y", "y": "yfocus", "strength": 1},
+                    ]
+                  },
+                  {"type": "formula", "as": "ylabel", "expr": "datum.datum.type == 'missense' ? -1 * (datum.datum.count - 1) * 50 : scale('yscaleDown', datum.datum.count) + 120"},
+                  {"type": "formula", "as": "angle", "expr": "datum.datum.type == 'missense' ? -65 : 65"},
+                  //newly added change 241F>241L —> 241F>L, 03/14/2024
+                  //newly added change:string parsing done in backend, 10/18/2024
+                  {
+                    "type": "formula", 
+                    "as": "modified_label",
+                    "expr": "datum.datum.label"
+                    // "expr": "datum.datum.type == 'missense' ? slice(datum.datum.label,0,length(datum.datum.label)/2+1)+slice(datum.datum.label,length(datum.datum.label)-1,length(datum.datum.label)): datum.datum.label"
+                  }
+                ]
+              },
+              //the lollipop paths
+              {
+                "type": "path",
+                "from": {"data": "nodes"},
+                "interactive": false,
+                "encode": {
+                  "update": {
+                    "stroke": {"scale": "consequence_color", "field": "datum.type"}, //{"value": "#ccc"},
+                    "strokeWidth": {"value": 1},
+                    "path": {"field": "path"},
+                    "opacity": [
+                      {
+                        "test": "datum.size == 0 || datum.type == 'invisible'",
+                        "value": 0
+                      },
+                      {"value": 0.5}
+                    ],
+                  }
+                },
+                "transform": [
+                  {
+                    "type": "linkpath",
+                    "shape": "line",
+                    "sourceX": "datum.x", "sourceY": "datum.y",
+                    "targetX": "datum.xfocus", "targetY": "datum.zero",
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "from": {"data": "nodes"},
+                "encode": {
+                  "enter": {
+                    "fill": {"value": "#000"},
+                    "text": {"field": "modified_label"},
+                    "angle": {"field": "angle"},
+                    "fontSize": {"value": 8},
+                    "limit": {"value": 150}
+                  },
+                  "update": {
+                    "fontSize": {"signal": "text_size"},
+                    "opacity": [
+                      {
+                        "test": "datum.size == 0 || datum.type == 'invisible'",
+                        "value": 0
+                      },
+                      {"value": 1}
+                    ],
+                    "x": {"field": "x"},
+                    "y": {"field": "ylabel"}
+                  }
+                },
+              },
+              {
+                "type": "path",
+                "from": {"data": "nodes"},
+                "interactive": false,
+                "encode": {
+                    "update": {
+                        "stroke": {"scale": "consequence_color", "field": "datum.type"},
+                        "strokeDash": {"value": [4, 8]},
+                        "strokeWidth": {"value": 1},
+                        "path": {"field": "path"},
+                        "opacity": [
+                            {
+                                "test": "datum.size == 0 || datum.type == 'invisible'",
+                                "value": 0
+                            },
+                            {"value": 0.5}
+                        ],
+                    }
+                },
+                "transform": [
+                  {
+                    "type": "linkpath",
+                    "shape": "line",
+                    "sourceX": "datum.x", "sourceY": "datum.y",
+                    "targetX": "datum.x", "targetY": "datum.ylabel",
+                  }
+                ]
+              },
+              {
+                "type": "rect",
+                "from": {"data": "domains"},
+                "encode": {
+                    "enter": {
+                        "fill": {"scale": "domain_color", "field": "description"},
+                        "x": {"scale": "xscale", "field": "location.start.value"},
+                        "x2": {"scale": "xscale", "field": "location.end.value"},
+                        "yc": {"scale": "yscaleUp", "value": 0},
+                        "height": {"value": 10},
+                        "fillOpacity": {"value": 0.5},
+                    }
+                }
+              },
+              {
+                "type": "path",
+                "from": {"data": "distance"},
+                "encode": {
+                    "update": {
+                    "stroke": {"value": "#000"},
+                    "strokeOpacity": {"signal": "1-datum.distance_3d * 0.06"},
+                    "strokeWidth": {"value": 1},
+                    "strokeDash": {"value":[5,2]},
+                    "opacity": {"signal": "(datum.distance_1d >= distance_in_1d) && (datum.distance_3d <= distance_in_3d) ? 1 : 0"}
+                    }
+                },
+                "transform": [
+                  {
+                    "type": "lookup",
+                    "from": "nodes",
+                    "key": "datum.position",
+                    "fields": ["datum.resno_of_variant_1", "datum.resno_of_variant_2"],
+                    "as": ["sourceNode", "targetNode"]
+                  },
+                  {
+                    "type": "linkpath",
+                    "sourceX": {"expr": "datum.sourceNode.x"},
+                    "targetX": {"expr": "datum.targetNode.x"},
+                    "sourceY": {"expr": "(datum.sourceNode.y < 100 && datum.targetNode.y < 100 && datum.sourceNode.size > 0 && datum.targetNode.size > 0) ? datum.sourceNode.y : -3000"},
+                    "targetY": {"expr": "(datum.sourceNode.y < 100 && datum.targetNode.y < 100 && datum.sourceNode.size > 0 && datum.targetNode.size > 0) ? datum.targetNode.y : -3000"},
+                    "shape": "curve"
+                  }
+                ]
+              },
+          ]
+      }
+          const view = new vega.View(vega.parse(spec))
+            .renderer('svg')  // set renderer (canvas or svg)
+            .initialize('#pop') // initialize view within parent DOM container
+            .run();
+
+          function popDownloadLollipop(gene){
+            view.toImageURL('png', 5).then(function(url) {
+              var link = document.createElement('a');
+              link.setAttribute('href', url);
+              link.setAttribute('target', '_blank');
+              link.setAttribute('download', 'lollipop_'+gene+'.png');
+              link.dispatchEvent(new MouseEvent('click'));
+            }).catch(console.error);
+          }
+    
+    </script>
+  </div>
+</body>
+</html>

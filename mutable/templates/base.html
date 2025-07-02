@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="stylesheet" type= "text/css" href="{{ url_for('static', filename='css/output.css') }}">
+    <link rel="stylesheet" type= "text/css" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script type="text/javascript" src="{{ url_for('static', filename='js/sortable.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/vega.min.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <title>{% block title %}{% endblock %} - Mutable</title>
+</head>
+
+<body>
+    <div class="font-mono">
+        <nav class="navbar navbar-expand-lg navbar-light px-2">
+            <div class="container-fluid">          
+                <a href="{{ url_for('index') }}" class="navbar-brand text-slate-900 text-xl font-bold">Mutable</a>
+                {% if g.user %}
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item px-2">
+                            <a class="nav-link current" href="{{ url_for('index') }}">Home</a>
+                        </li>
+                        <li class="nav-item px-2">
+                        <a class="nav-link" href="{{ url_for('views.lollipop')}}">Lollipop</a>
+                        </li>
+                        <li class="nav-item px-2">
+                            <a class="nav-link" href="http://172.234.200.101:8080/misfit/">Misfit</a>
+                        </li>
+                    </ul>
+                    <ul class="navbar-nav justify-content-end">
+                        <li class="nav-item px-2">
+                            <a class="nav-link" href="{{ url_for('views.about') }}" style="color:SlateGray">About</a>
+                        </li>
+                        <li class="nav-item px-2">
+                            <a class="nav-link" href="{{ url_for('views.notes') }}" style="color:SlateGray">Release Notes</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link no-hover" href="{{ url_for('auth.logout') }}">Logout</a>
+                        </li>
+                    </ul>
+
+                </div>
+                {% endif %}
+            </div>
+        </nav>
+
+        <div class="flex flex-row px-8 pt-8 items-center" style="justify-content: space-between;width: 100%">
+            {% if g.user.username == "guest@gmail.com" %}
+            <div class="basis-auto">
+                <form method="post" class="d-flex">
+                    <div class="flex text-center align-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                        </svg>
+                        <i class="bi bi-search px-2"></i>
+                        <input id="gene" name="gene" required autofocus
+                            class="flex-auto appearance-none rounded-none border px-2 border-gray-300 text-gray-900 placeholder-gray-400 focus:z-10 focus:border-slate-500 focus:outline-none focus:ring-slate-500"
+                            placeholder="Search Gene">
+                        <button type="submit"
+                            class="flex-none px-4 border border-transparent bg-slate-700 text-sm font-medium text-white hover:bg-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">Search</button>
+                    </div>
+                </form>
+
+            </div>
+            {% endif %}
+
+            {% if g.user and gene %}
+            <div class="flex flex-row items-center text-center justify-center pl-16">
+                <div class="basis-auto px-3">
+                    <a class="underline text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer" href="https://www.genecards.org/cgi-bin/carddisp.pl?gene={{gene}}">GeneCards</a>
+                </div>
+                <div class="basis-auto px-3">
+                    <a class="underline text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer" href="https://www.omim.org/entry/{{metrics.mim_id}}?search={{gene}}">OMIM</a>
+                </div>
+                <div class="basis-auto px-3">
+                    <a class="underline text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer" href="https://gnomad.broadinstitute.org/gene/{{gene}}">gnomAD</a>
+                </div>
+                <div class="basis-auto px-3">
+                    <a class="underline text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer" href="https://www.uniprot.org/uniprotkb/{{uniprot_id}}/entry">UniProt</a>
+                </div>
+                <div class="basis-auto px-3">
+                    <a class="underline text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer" href="https://gtexportal.org/home/gene/{{metrics.ensembl_id}}">GTEx</a>
+                </div>
+                <div class="basis-auto px-3">
+                    <a class="underline text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer" href="https://alphafold.ebi.ac.uk/entry/{{uniprot_id}}">AlphaFold</a>
+                </div>
+            </div>
+
+            {% endif %}
+
+        </div>
+
+        {% if g.user and gene %}
+        <div class="flex flex-row px-8 py-3 items-center"> 
+            <div class="basis-auto px-4 font-bold text-xl">
+                {{ gene }}
+            </div>
+
+            <div class="basis-auto text-l font-medium pl-2" style="text-transform: capitalize">
+                {{metrics.gene_full_name}}
+            </div>
+
+            <div class="flex pl-16 px-8">
+                <div class="basis-auto px-3 text-sm" >
+                    <b class="hover-text"> pLI:{% if metrics.pLI %}{{ metrics.pLI|float|round(2) }}{% else %}NaN{% endif %} 
+                        <span class="tooltip-text" id="bottom">
+                            Probability of the gene being loss-of-function intolerant 
+                        </span>
+                    </b>
+                </div>
+
+                <div class="basis-auto px-3 text-sm" >
+                    <b class="hover-text"> o/e_LoF:{% if metrics.oe_lof %}{{ metrics.oe_lof|float|round(2) }}{% else %}NaN{% endif %}
+                        <span class="tooltip-text" id="bottom" style="left:-1.5rem">    
+                            Observed/expected ratio of LoF variants in the gene
+                        </span>
+                    </b>
+                </div>
+
+                <div class="basis-auto px-3 text-sm" >
+                    <b class="hover-text"> mis-Z:{% if metrics.mis_z %}{{ metrics.mis_z|float|round(2) }}{% else %}NaN{% endif %}
+                        <span class="tooltip-text" id="bottom" style="left:-2rem">
+                            z-score for missense variation of the gene
+                        </span>
+                    </b>
+                </div>
+                
+                <div class="flex px-3 text-sm" style="position:relative">
+                    <b class="basis-auto hover-text"> S<sub>het</sub>:<span id="sHetValue">{% if not metrics.s_het_zeng or (metrics.s_het_zeng == -1) %}NaN{% else %}{{metrics.s_het_zeng}}{% endif %}</span> 
+                        <span class="tooltip-text" id="bottom">
+                            Heterozygotes PTV (protein truncated variant) selection coefficient
+                            <!-- (highly penetrant PTV for severe early onset condition should have high S<sub>het</sub>) -->
+                        </span>
+                    </b>
+                </div>
+                
+
+                <div class="basis-auto px-3 text-sm" >
+                    <b class="hover-text"> S<sub>m</sub>:<span id="smValue">{{ metrics.MisFit_sgene_mis }}</span>
+                        <span class="tooltip-text" id="bottom">
+                            Gene level missense selection for MisFit Model
+                        </span>
+                    </b>
+                </div>
+
+            </div>
+
+            <div class="px-12 basis-auto">
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+                <button class="btn" style="background-color:#52595D;font-size:x-small;color:white;" onclick="popDownloadCSV('{{gene}}', '{{metrics.uniprot_id}}')">
+                <i class="fa fa-download"></i> Download Variants Data
+                </button>
+            </div>
+
+        </div>
+        
+        {% endif %}
+
+                
+
+        <script>
+            // function roundToSignificantDigits(num, digits) {
+            //     var re = new RegExp('^-?\\d+(?:\.\\d{0,' + (digits || -1) + '})?');
+            //     return num.toString().match(re)[0];
+            // }
+
+            var sHetStringValue = document.getElementById("sHetValue").textContent;
+            var sHetValue = (sHetStringValue === 'null' || sHetStringValue === null) ? null : parseFloat(sHetStringValue);
+            var roundedValue = (sHetValue !== null) ? sHetValue.toPrecision(2) : null;
+            document.getElementById("sHetValue").textContent = (roundedValue !== null) ? roundedValue : 'null';
+
+            var smStringValue = document.getElementById("smValue").textContent;
+            var smValue = (smStringValue === 'null' || smStringValue === null) ? null : parseFloat(smStringValue);
+            var roundedsmValue = (smValue !== null) ? smValue.toPrecision(2) : null;
+            document.getElementById("smValue").textContent = (roundedsmValue !== null) ? roundedsmValue : 'null';
+
+        </script>
+        {% block body %}{% endblock %}
+    </div>
+</body>
+
+<script>
+    function popDownloadCSV(gene, uniprot_id) {
+      // convert the table to tsv and export
+      let res_data = []
+      let rows = document.getElementsByTagName('tr');
+      for (let i = 0; i < rows.length; i++) {
+        let cols = rows[i].querySelectorAll('td,th');
+
+        let currRow = [];
+        for (let j = 0; j < cols.length; j++) {
+          // currRow.push(cols[j].innerText);
+            let cellText = cols[j].innerText;
+
+            if (cellText.includes('>') && !cellText.includes('c.')) {
+                let [ref, alt] = cellText.split('>');
+                currRow.push(ref);
+                currRow.push(alt);
+            } else {
+                currRow.push(cellText);
+            }
+
+        }
+        res_data.push(currRow.join("\t"));
+      }
+
+      downloadcsv(res_data.join("\n"), "variants_"+gene+"_"+uniprot_id+".tsv");
+    }
+
+    function downloadcsv(tsv, filename){
+      var resFile;
+      var downloadLink;
+
+      resFile = new Blob([tsv], {type: "text/tsv"});
+
+      downloadLink = document.createElement("a");
+
+      downloadLink.download = filename;
+      downloadLink.href = window.URL.createObjectURL(resFile);
+      downloadLink.style.display = "none";
+      document.body.appendChild(downloadLink);
+
+      downloadLink.click();
+    }
+
+</script>
+</html>

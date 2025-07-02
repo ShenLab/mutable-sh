@@ -1,0 +1,6 @@
+.git
+mutable/__pycache__
+.DS_Store
+**/.DS_Store
+# below items should not be ignored when testing locally
+instance
