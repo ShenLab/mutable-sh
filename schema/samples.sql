@@ -13,16 +13,11 @@ CREATE TABLE samples (
   cohort_condition TEXT,
   batch TEXT,
   dup_id TEXT,
-  prev_studies TEXT,
   twin BOOLEAN,
   zygosity TEXT,
-  twin_aff BOOLEAN,
-  twin_partic BOOLEAN,
   phenotype TEXT,
   hpo TEXT,
   hpo_id TEXT,
-  genetic_data BOOLEAN,
-  dnv_callable BOOLEAN,
   published BOOLEAN,
   dnv_count INTEGER
 );
