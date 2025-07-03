@@ -11,13 +11,10 @@ CREATE TABLE samples (
   syndromic BOOLEAN,
   cohort TEXT,
   cohort_condition TEXT,
-  batch TEXT,
   dup_id TEXT,
   twin BOOLEAN,
-  zygosity TEXT,
   phenotype TEXT,
   hpo TEXT,
   hpo_id TEXT,
-  published BOOLEAN,
-  dnv_count INTEGER
+  ndd BOOLEAN
 );
