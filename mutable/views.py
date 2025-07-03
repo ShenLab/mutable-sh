@@ -5,8 +5,6 @@ from werkzeug.exceptions import abort
 import os
 import json
 import re
-import pandas as pd
-from collections import Counter
 
 from mutable.auth import login_required
 from mutable.db import get_gene_db, get_distance_db, get_sample_db, get_dnv_db, get_constraint_db, get_plddt_db
@@ -34,7 +32,7 @@ def gene_view(gene):
             """, (gene,)
         ).fetchone()
 
-        if not gene_id_info: # gene id not eist in our database
+        if not gene_id_info: # gene id not exist in our database
             return redirect(url_for('views.handleError'))
 
         gene = gene_id_info["hgnc"].upper()
@@ -43,8 +41,7 @@ def gene_view(gene):
     dnv_db = get_dnv_db()
     constraint_db = get_constraint_db()
     plddt_db = get_plddt_db()
-    # need revise for parameters
-
+    
     rows = dnv_db.execute(
         """
         SELECT chromosome,
@@ -203,7 +200,6 @@ def sample_view(sample):
     
     dnv_db = get_dnv_db()
     get_sample = get_sample_db()
-    # get_sample_public = get_sample_public_db()
 
     samp = get_sample.execute(
         """
@@ -211,13 +207,6 @@ def sample_view(sample):
         FROM samples WHERE sample = ?
         """, (sample,)
     ).fetchone()
-
-    # sample_public = get_sample_public.execute(
-    #     """
-    #     SELECT sample, family, father, mother, sex, status, cohort, cohort_condition, syndromic, phenotype, hpo, hpo_id, ndd, dup_id, twin
-    #     FROM samples WHERE sample = ?
-    #     """, (sample,)
-    # ).fetchone()
 
     rows = dnv_db.execute(
         """
@@ -248,42 +237,7 @@ def index():
         gene = gene.strip()
         return redirect(url_for('views.gene_view', gene=gene))
 
-    sample_db = get_sample_db()
-
-    samples = sample_db.execute(
-        "SELECT sample, sex, status, cohort, cohort_condition FROM samples WHERE dnv_callable = 1"
-    ).fetchall()
-
-    condition_counter = Counter()
-    for s in samples:
-        if s["status"] == "affected":
-            condition_counter[s["cohort_condition"].replace("/", "_")] += 1
-        if s["status"] == "unaffected":
-            condition_counter["unaffected"] += 1
-
-    samples_cohort = sample_db.execute(
-        """SELECT cohort_condition, count(*), cohort 
-            FROM samples WHERE dnv_callable == 1 AND status != 'unaffected' 
-            GROUP BY cohort_condition, cohort
-        """
-    ).fetchall()
-
-    cohort_counts = {}
-    for item in samples_cohort:
-        key, num, label = item
-        curr_str = f"{label}-{num}"
-        
-        if key in cohort_counts:
-            cohort_counts[key.replace("/", "_")].append(curr_str)
-        else:
-            cohort_counts[key.replace("/", "_")] = [curr_str]
-
-    for key in cohort_counts:
-        cohort_counts[key] = ', '.join(cohort_counts[key])
-
-
-
-    return render_template('index.html', counts=condition_counter, cohort_counts=cohort_counts)
+    return render_template('index.html')
 
 @bp.route('/error', methods=('GET', 'POST'))
 def handleError():

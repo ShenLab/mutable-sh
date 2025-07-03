@@ -28,7 +28,6 @@
                     <th class="w-16">gMVP</th>
                     <th class="w-24">spliceAI</th>
                     <th class="w-28">gnomAD4_AF</th>
-                    <!-- <th style="display: none;"> sample_related_genes(chr,pos,ref>alt,gene)</th> -->
                 </tr>
             </thead>
             <tbody class="text-sm text-center" style="overflow-x: scroll">
@@ -56,7 +55,6 @@
                     <td>{{v.gmvp if v.gmvp}}</td>
                     <td>{{v.spliceai if v.spliceai}}</td>
                     <td>{{v.gnomad4_af if v.gnomad4_af}}</td>
-                    <!-- <td style="display: none;">{{v.sample_other_dnvs if v.sample_other_dnvs}}</td> -->
                   </tr>
                 {% endfor %}
             </tbody>

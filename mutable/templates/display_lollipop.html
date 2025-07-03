@@ -59,10 +59,6 @@
               {
                 "name": "color_legend",
                 "value": "consequence",
-                // "bind": {
-                //   "input": "radio",
-                //   "options": ["consequence"]
-                // }
               },
               {
                 "name": "text_size",
@@ -334,11 +330,6 @@
                   },
                   "update": {
                     "fill": [
-                      // {
-                      //   "test": "color_legend == 'condition'",
-                      //   "scale": "condition_color",
-                      //   "field": "condition"
-                      // },
                       {
                         "scale": "consequence_color",
                         "field": "type"
@@ -349,7 +340,6 @@
                     "zindex": {"value": 0},
                     "size": [
                       {
-                        // "test": "indata('selected', 'value', datum.type) || indata('selected', 'value', datum.condition) || datum.type == 'invisible'",
                         "test": "indata('selected', 'value', datum.type) || datum.type == 'invisible'",
                         "value": 0
                       },
@@ -372,13 +362,10 @@
                   },
                   {"type": "formula", "as": "ylabel", "expr": "datum.datum.type == 'missense' ? -1 * (datum.datum.count - 1) * 50 : scale('yscaleDown', datum.datum.count) + 120"},
                   {"type": "formula", "as": "angle", "expr": "datum.datum.type == 'missense' ? -65 : 65"},
-                  //newly added change 241F>241L —> 241F>L, 03/14/2024
-                  //newly added change:string parsing done in backend, 10/18/2024
                   {
                     "type": "formula", 
                     "as": "modified_label",
                     "expr": "datum.datum.label"
-                    // "expr": "datum.datum.type == 'missense' ? slice(datum.datum.label,0,length(datum.datum.label)/2+1)+slice(datum.datum.label,length(datum.datum.label)-1,length(datum.datum.label)): datum.datum.label"
                   }
                 ]
               },
