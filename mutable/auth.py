@@ -90,11 +90,6 @@ def guestLogin():
         'SELECT * FROM user WHERE username = ?', (guest_username,)
     ).fetchone()
 
-    # if not guest_user:
-    #     flash('Username not exist. WHYYYYYYYY')
-    # elif not check_password_hash(guest_user['password'], password):
-    #     flash("PASSWORD INCORRECT, WHYYYYYYYY")
-
     if guest_user and check_password_hash(guest_user['password'], guest_password):
         session.clear()
         session['user_id'] = guest_user['id']
