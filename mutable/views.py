@@ -102,6 +102,7 @@ def gene_view(gene):
                 seen[v["aa_change"]]["count"] += 1
                 more_than_one = True
             except KeyError:
+
                 seen[v["aa_change"]] = {
                     "label": position,
                     "position": int(re.search(r"p\.(\D*)(\d+)", position).group(2)),
@@ -109,9 +110,15 @@ def gene_view(gene):
                     "gmvp": v["gmvp"] if (v["gmvp"] and ("missense" in v["consequence"])) else "none",
                     "type": v["consequence"].replace('_variant', ''),
                     "condition": v["cohort_condition"] if v["status"] == "affected" else v["status"],
-                    "alphamissense": v["AlphaMissense"] if (v["AlphaMissense"] and ("missense" in v["consequence"])) else "none",
-                    "misfit_d": v["MisFit_D"] if (v["MisFit_D"] and ("missense" in v["consequence"])) else "none"
+                    "alphamissense": "none",
+                    "misfit_d": "none"
                 }
+                if "MisFit_D" in v.keys() and ("missense" in v["consequence"]):
+                    seen[v["aa_change"]]["misfit_d"] = v["MisFit_D"]
+                
+                if "AlphaMissense" in v.keys() and ("missense" in v["consequence"]):
+                    seen[v["aa_change"]]["alphamissense"] = v["AlphaMissense"]
+
                 if "missense" not in v["consequence"]:
                     seen[v["aa_change"]]["label"] = re.search(r"p\.(\D*)(\d+)", position).group(2)
         

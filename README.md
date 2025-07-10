@@ -25,7 +25,7 @@ It contains the curated annotated data for DNVs. See [dnvs.sql](schema/dnvs.sql)
 It contains the sample-level data. See [samples.sql](schema/samples.sql) for the format required for creating the database for samples. The schema shows the required attributes need for sample-level data for Mutable. You can add more fields if needed.
 
 ### distance.sqlite
-The pairwise 1D and 3D distances data are stored in this database. We calculate the spatial distance using the script [here](scripts/protein_link.R). First unzip the downloaded ```UP000005640_9606_HUMAN_v4.zip```, then run the script to generate the pairwise distance between variants. Modify the paths in the script if needed.
+The pairwise 1D and 3D distances data are stored in this database. We calculate the spatial distance using the script [here](mutable/scripts/protein_link.R). First unzip the downloaded ```UP000005640_9606_HUMAN_v4.zip```, then run the script to generate the pairwise distance between variants. Modify the paths in the script if needed.
 The default script takes 4 arguments: paths for the ```dnvs.sqlite```, ```genes.sqlite```, ```UP000005640_9606_HUMAN_v4```, and ```distance.sqlite``` respectively. Make sure all the packages required by R are installed. Then under ```/instance``` run the script with ```Rscript ../protein_link.R dnvs.sqlite genes.sqlite UP000005640_9606_HUMAN_v4 distance.sqlite```. The ```distance.sqlite``` will be updated or created if not previously exist. 
 
 ### other databases
@@ -33,3 +33,5 @@ The ```users.sqlite``` in the example data only contain access for the guest use
 
 ```constraint.sqlite```, ```genes.sqlite```, and ```plddt.sqlite``` do not require modification as they contain complete curated gene-level information for all human genes. You can also modify the databases if needed.
 
+### Annotation data specification
+On the gene-centered page, variant-level annotation data for computational estimates and selection coefficients are selected to display on the gene-centerd page. You can modify [config.json](mutable/scripts/config.json) to specify data columns to show in the table.

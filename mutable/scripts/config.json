@@ -1,5 +1,7 @@
 {
     "display_fields": [
+      "MisFit_S",
+      "MisFit_D",
       "AlphaMissense",
       "CADD",
       "REVEL",
