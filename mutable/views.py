@@ -41,34 +41,11 @@ def gene_view(gene):
     dnv_db = get_dnv_db()
     constraint_db = get_constraint_db()
     plddt_db = get_plddt_db()
-    
     rows = dnv_db.execute(
         """
-        SELECT chromosome,
-                position,
-                ref,
-                alt,
-                sample,
-                cohort,
-                cohort_condition,
-                status,
-                gene,
-                replace(consequence, "_variant", "") as consequence,
-                transcript,
-                aa_change,
-                dna_change,
-                round(cadd, 3) as cadd,
-                round(revel, 3) as revel,
-                round(gmvp, 3) as gmvp,
-                round(spliceai, 3) as spliceai,
-                round(gnomAD4_AF, 6) as gnomad4_af,
-                round(topmed_af, 6) as topmed_af,
-                round(AlphaMissense, 4) as AlphaMissense,
-                MisFit_S,
-                MisFit_D,
-                sample_other_dnvs
-                FROM dnvs
-                WHERE UPPER(dnvs.gene) = ?
+        SELECT *
+        FROM dnvs
+        WHERE UPPER(dnvs.gene) = ?
         """, (gene,)
     ).fetchall()
 
@@ -119,7 +96,7 @@ def gene_view(gene):
         if v["aa_change"] != ".":
             position = v["aa_change"].split(":")[-1]
 
-            consequences.add(v["consequence"])
+            consequences.add(v["consequence"].replace('_variant', ''))
             conditions.add(v["cohort_condition"] if v["status"] == "affected" else v["status"])
             try:
                 seen[v["aa_change"]]["count"] += 1
@@ -130,7 +107,7 @@ def gene_view(gene):
                     "position": int(re.search(r"p\.(\D*)(\d+)", position).group(2)),
                     "count": 1,
                     "gmvp": v["gmvp"] if (v["gmvp"] and ("missense" in v["consequence"])) else "none",
-                    "type": v["consequence"],
+                    "type": v["consequence"].replace('_variant', ''),
                     "condition": v["cohort_condition"] if v["status"] == "affected" else v["status"],
                     "alphamissense": v["AlphaMissense"] if (v["AlphaMissense"] and ("missense" in v["consequence"])) else "none",
                     "misfit_d": v["MisFit_D"] if (v["MisFit_D"] and ("missense" in v["consequence"])) else "none"
@@ -185,10 +162,15 @@ def gene_view(gene):
 
     plddt = {"name": "scores", "values": plddt_data}
 
+    current_dir = os.path.dirname(__file__)
+    config_path = os.path.join(current_dir, "scripts/config.json")
+    with open(config_path) as f:
+        config_f = json.load(f)
+        display_fields = config_f.get("display_fields")
 
     return render_template('gene.html', dnvs=rows, gene=gene, metrics=metrics, variants={"name": "variants", "values": list(seen.values())},
                             consequences=consequences, conditions=list(conditions), sequence=sequence, domains=domains, 
-                            distance=distance, aa_change=aa_change, constraints=constraint_data, plddt=plddt, uniprot_id=uniprot_id)
+                            distance=distance, aa_change=aa_change, constraints=constraint_data, plddt=plddt, uniprot_id=uniprot_id, display_fields=display_fields)
 
 @bp.route('/sample/<sample>', methods=("GET", "POST"))
 @login_required
@@ -210,14 +192,19 @@ def sample_view(sample):
 
     rows = dnv_db.execute(
         """
-        SELECT chromosome, position, ref, alt, sample, gene, replace(consequence, "_variant", "") as consequence, transcript, 
-                aa_change, dna_change, round(cadd, 3) as cadd, round(revel, 3) as revel, round(gmvp, 3) as gmvp, round(spliceai, 3) as spliceai, 
-                round(gnomAD4_AF, 6) as gnomad4_af, round(AlphaMissense, 4) as AlphaMissense, MisFit_S, MisFit_D
-        FROM dnvs WHERE sample = ?
+        SELECT *
+        FROM dnvs
+        WHERE sample = ?
         """, (sample,)
     ).fetchall()
 
-    return render_template('sample.html', dnvs=rows, sample=samp)
+    current_dir = os.path.dirname(__file__)
+    config_path = os.path.join(current_dir, "scripts/config.json")
+    with open(config_path) as f:
+        config_f = json.load(f)
+        display_fields = config_f.get("display_fields")
+
+    return render_template('sample.html', dnvs=rows, sample=samp, display_fields=display_fields)
 
 @bp.route('/about')
 @login_required

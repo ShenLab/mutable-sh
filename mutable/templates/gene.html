@@ -5,55 +5,47 @@
 {% block body %}
 <div class="grid grid-cols-3 gap-4 px-8">
     <div class="overflow-auto overscroll-scroll col-span-3 border h-fit">
-        <table class="sortable table-fixed w-full table-bordered table-striped">
+        <table class="sortable table-auto w-full table-bordered table-striped">
             <thead class="thead-dark" style="text-align:center">
                 <tr>
                     <th class="w-16">Chr</th>
                     <th class="w-24">Position</th>
-                    <th class="w-24">Ref&gtAlt</th>
+                    <th class="max-w-24">Ref&gtAlt</th>
                     <th class="w-36">Sample</th>
 
                     <th class="w-24">Cohort</th>
                     <th class="w-24">Condition </th>
                     <th class="w-24">Status</th>
-                    <th class="w-36">Consequence</th>
+                    <th class="max-w-36">Consequence</th>
                     <th class="w-36">Transcript</th>
-                    <th class="w-32">AA_change </th>
-                    <th class="w-36">DNA_change</th>
-                    <th class="w-24">MisFit_S</th>
-                    <th class="w-24">MisFit_D</th>
-                    <th class="w-36">AlphaMissense</th>
-                    <th class="w-16">CADD</th>
-                    <th class="w-20">REVEL</th>
-                    <th class="w-16">gMVP</th>
-                    <th class="w-24">spliceAI</th>
+                    <th class="max-w-32">AA_change </th>
+                    <th class="max-w-36">DNA_change</th>
+                    {% for attr in display_fields %}
+                      <th class="px-2">{{attr}}</td>
+                    {% endfor %}
                     <th class="w-28">gnomAD4_AF</th>
                 </tr>
             </thead>
             <tbody class="text-sm text-center" style="overflow-x: scroll">
                 {% for v in dnvs %}
                 <tr class="hover:bg-gray-100" style="height:28px">
-                    <td>{{v.chromosome}}</td>
-                    <td>{{v.position}}</td>
-                    <td class="truncate">{{v.ref}}&gt{{v.alt}}</td>
+                    <td class="px-2">{{v.chromosome}}</td>
+                    <td class="px-2">{{v.position}}</td>
+                    <td class="max-w-24 px-2 truncate">{{v.ref}}&gt{{v.alt}}</td>
                     <td class="truncate">
                       <a class="text-blue-600 hovertxt visited:text-purple-600" href="/sample/{{v.sample}}">{{v.sample}}</a>
                     </td>
 
                     <td>{{v.cohort}}</td>
                     <td>{{v.cohort_condition}}</td> 
-                    <td>{{v.status if v.status}}</td>
-                    <td class="truncate">{{v.consequence if v.consequence != "."}}</td>
-                    <td>{{v.transcript if v.transcript}}</td>
-                    <td class="truncate">{{v.aa_change.split(":")[-1] if v.aa_change != "."}}</td>
-                    <td class="truncate">{{v.dna_change.split(":")[-1] if v.dna_change != "."}}</td>
-                    <td id="misfit_s">{{v.MisFit_S if v.MisFit_S}}</td>
-                    <td id="misfit_d">{{v.MisFit_D if v.MisFit_D}}</td>
-                    <td>{{v.AlphaMissense if v.AlphaMissense}}</td>
-                    <td>{{v.cadd if v.cadd}}</td>
-                    <td>{{v.revel if v.revel}}</td>
-                    <td>{{v.gmvp if v.gmvp}}</td>
-                    <td>{{v.spliceai if v.spliceai}}</td>
+                    <td class="px-2">{{v.status if v.status}}</td>
+                    <td class="max-w-36 truncate">{{v.consequence.replace("_variant", '') if v.consequence != "."}}</td>
+                    <td class="px-2">{{v.transcript if v.transcript}}</td>
+                    <td class="max-w-32 px-2 truncate">{{v.aa_change.split(":")[-1] if v.aa_change != "."}}</td>
+                    <td class="max-w-36 truncate">{{v.dna_change.split(":")[-1] if v.dna_change != "."}}</td>
+                    {% for attr in display_fields %}
+                      <td>{{v[attr] if v[attr]}}</td>
+                    {% endfor %}
                     <td>{{v.gnomad4_af if v.gnomad4_af}}</td>
                   </tr>
                 {% endfor %}
@@ -63,29 +55,22 @@
 </div>
 
 <script>
-  
-  var cells_misfit_s = document.querySelectorAll('#misfit_s');
-  cells_misfit_s.forEach(cell => {
-      var value = parseFloat(cell.textContent);
-
-      if (value != 0 & !isNaN(value)) {
-        var roundedValue = value.toPrecision(2);
-        cell.textContent = roundedValue;
-      } else {
+  document.querySelectorAll('tr').forEach(row => {
+    const cells = row.querySelectorAll('td');
+    for (let i = 11; i < cells.length; i++) {
+      const cell = cells[i];
+      const value = parseFloat(cell.textContent);
+    
+      if (!isNaN(value)) {
+        if (value > 1) {
+          cell.textContent = value.toFixed(1);
+        } else {
+          cell.textContent = value.toPrecision(2);
+        }
+      } else if (value === 0) {
         cell.textContent = "";
       }
-  });
-
-  var cells_misfit_d = document.querySelectorAll('#misfit_d');
-  cells_misfit_d.forEach(cell => {
-      var value = parseFloat(cell.textContent);
-
-      if (value != 0 & !isNaN(value)) {
-        var roundedValue = value.toPrecision(2);
-        cell.textContent = roundedValue;
-      } else {
-        cell.textContent = "";
-      }
+    }
   });
 
 </script>
