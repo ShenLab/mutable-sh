@@ -1,0 +1,9 @@
+{
+    "display_fields": [
+      "AlphaMissense",
+      "CADD",
+      "REVEL",
+      "gMVP",
+      "spliceAI"
+    ]
+  }

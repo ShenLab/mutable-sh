@@ -15,15 +15,14 @@ CREATE TABLE dnvs (
   transcript TEXT,
   aa_change TEXT,
   dna_change TEXT,
-  cadd REAL,
-  revel REAL,
-  gmvp REAL,
+  CADD REAL,
+  REVEL REAL,
+  gMVP REAL,
   MisFit_D REAL,
   MisFit_S REAL,
   AlphaMissense REAL,
-  spliceai REAL,
-  gnomAD4_AC INTEGER,
-  gnomAD4_AN INTEGER,
+  spliceAI REAL,
   gnomAD4_AF REAL,
-  topmed_af REAL,
   vid TEXT UNIQUE);
+
+  CREATE INDEX idx_sample ON dnvs (sample);
