@@ -1,7 +1,6 @@
 tailwindcss
 certbot
-instance/*
-!instance/
+instance
 mutable/__pycache__
 .DS_Store
 **/.DS_Store
