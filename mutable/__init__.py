@@ -9,7 +9,6 @@ def create_app(test_config=None):
         GENE_DATABASE=os.path.join(app.instance_path, 'genes.sqlite'),
         DISTANCE_DATABASE=os.path.join(app.instance_path, 'distance.sqlite'),
         SAMPLE_DATABASE=os.path.join(app.instance_path, 'samples.sqlite'),
-        # SAMPLE_PUBLIC_DATABASE=os.path.join(app.instance_path, 'samples_published.sqlite'),
         CONSTRAINT_DATABASE=os.path.join(app.instance_path, 'constraint.sqlite'),
         PLDDT_DATABASE=os.path.join(app.instance_path, 'plddt.sqlite')
     )
