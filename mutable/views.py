@@ -71,7 +71,12 @@ def gene_view(gene):
     dist = [dict(zip(dist_keys, values)) for values in dist]
 
     # fix issue when mutiple uniprot_id with multiple protein length
-    uniprot_json = json.loads(metrics["uniprot_json"])
+    try:
+        uniprot_json = json.loads(metrics["uniprot_json"])
+    except Exception:
+        # missing gene protein metrics
+        return redirect(url_for('views.handleError'))
+
     sequence_info = uniprot_json["sequence"]
     aa_change_max = sequence_info["length"]
     for v in rows:
