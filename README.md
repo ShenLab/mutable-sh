@@ -17,7 +17,7 @@ For generating databases for extended data, [R](https://www.r-project.org/) is r
 - RSQLite
 
 ## Self-host Mutable
-For self-hosting using example datasets, inside the repo, create a folder with ```mkdir instance```. Under ```mutable-sh/instance```, download PDB data from [here](https://zenodo.org/records/15792652?preview=1&token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6ImRlMGJjNjA1LTY3ZmYtNDMxNy04NmI0LWVjMzEzYmQ1Njg4OSIsImRhdGEiOnt9LCJyYW5kb20iOiIzZTEyNTZjZDQyOTc1MDJkNzcxMTEyNTZhOGE5ZWJlZSJ9.JsNTWqfgLL4Ild6FWn2AoDkRH2dvCX1Jei2rNj1Pb1-3-G9tv_q9YfY-03eE0vH9SZoW_wN8p8OLGhK467FYtA). And unzip the PDB file ```UP000005640_9606_HUMAN_v4.zip```.
+For self-hosting using example datasets, download the data from [here](https://zenodo.org/records/15792652?preview=1&token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6ImRlMGJjNjA1LTY3ZmYtNDMxNy04NmI0LWVjMzEzYmQ1Njg4OSIsImRhdGEiOnt9LCJyYW5kb20iOiIzZTEyNTZjZDQyOTc1MDJkNzcxMTEyNTZhOGE5ZWJlZSJ9.JsNTWqfgLL4Ild6FWn2AoDkRH2dvCX1Jei2rNj1Pb1-3-G9tv_q9YfY-03eE0vH9SZoW_wN8p8OLGhK467FYtA). And unzip  ```instance.zip```
 
 Make sure all other databases (*dnvs.sqlite*, *genes.sqlite*, *samples.sqlite*, *distance.sqlite*, *constraint.sqlite*, *plddt.sqlite*, *users.sqlite*) are in the directory ```mutable-sh/instance```. Inside  ```mutable-sh/instance```, create a new file ```config.py``` with ```SECRET_KEY=$YOUR_KEY```,  replace with your own secret key for flask to secure session data for the web app, or you can create a random string using ```python -c 'import os; print(os.urandom(12))'```.
 
